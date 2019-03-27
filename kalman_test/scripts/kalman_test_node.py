@@ -9,21 +9,15 @@ obs = []
 
 def callback(msg):
     global obs
-    points = msg.ranges
-    before_point = msg.ranges[0]
     obs = []
     lines_point = []
+    datasize = len(msg.ranges)
+    offset = -90 * math.pi/180
+    before_point = [0, 0]
 
-    for point in points:
-        norm = abs(before_point - point)
-        lim_norm = math.sin(0.36*math.pi/180)*3
-        if norm < lim_norm:
-            lines_point.append(point)
-        else:
-            if len(lines_point) > 0:
-                obs.append(lines_point)
-                lines_point = []
-        before_point = point
+    for i in range(datasize):
+        pass
+    print(msg)
 
 if __name__ == '__main__':
     rospy.init_node("scan_values")
