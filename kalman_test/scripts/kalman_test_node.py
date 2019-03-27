@@ -21,10 +21,9 @@ def callback(msg):
         if similarity > 0.9:
             current_point = [current_vector * math.cos(i*msg.angle_increment), current_vector * math.sin(i*msg.angle_increment)]
             lines_point.append(current_point)
-        else:
-            if len(lines_point) > 0:
-                obstacles.append(lines_point)
-                lines_point = []
+        elif lines_point:
+            obstacles.append(lines_point)
+            lines_point = []
         before_vector = current_vector
 
     for obstacle in obstacles:
