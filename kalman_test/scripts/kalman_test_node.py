@@ -4,6 +4,7 @@
 import rospy
 import math
 import numpy as np
+import random
 from sensor_msgs.msg import LaserScan
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
@@ -15,11 +16,14 @@ class Point():
         self.z = z
 
 obstacles = []
+points    = []
 offset    = 90 * math.pi/180.0
 
 def callback(msg):
     global obstacles
+    global points
     obstacles = []
+    points    = []
     datasize  = len(msg.ranges)
     lines_point = []
     before_vector = msg.ranges[0]
@@ -28,34 +32,37 @@ def callback(msg):
     for i in range(datasize):
         angle = msg.angle_min + angle_inc * i
         current_vector = msg.ranges[i]
-        current_point = Point(current_vector * math.cos(angle), current_vector * math.sin(angle))
-        norm = abs(current_vector - before_vector)
-        similarity = 1/(1+norm)
+        if not math.isnan(current_vector):
+            current_point = Point(current_vector * math.cos(angle), current_vector * math.sin(angle))
+            points.append(current_point)
+            norm = abs(current_vector - before_vector)
+            similarity = 1/(1+norm)
 
-        if similarity > 0.95:
-            lines_point.append(current_point)
-        else:
-            if len(lines_point) > 1:
+            if similarity > 0.94:
+                lines_point.append(current_point)
+            else:
                 obstacles.append(lines_point)
-            lines_point = [current_point]
+                lines_point = [current_point]
         before_vector = current_vector
 
 def main():
     while not rospy.is_shutdown():
         rospy.init_node("scan_values")
-        r = rospy.Rate(1)
+        r = rospy.Rate(20)
         sub = rospy.Subscriber("/scan", LaserScan, callback)
         pub = rospy.Publisher("/markers", MarkerArray, queue_size=1000)
-
         marker_array = MarkerArray()
+        index = 0
+
         if obstacles:
-            index = 0
-            for obstacle in obstacles:
+            #for obstacle in obstacles:
+            #for point in points:
+            if points:
                 marker = Marker()
 
                 marker.header.frame_id = "/laser"
-                marker.header.stamp = rospy.Time.now()
                 marker.id = index
+                marker.ns = "object"
                 marker.type = marker.LINE_LIST
                 marker.action = marker.ADD
 
@@ -70,7 +77,9 @@ def main():
 
                 #marker.points.append(obstacle[0])
                 #marker.points.append(obstacle[-1])
-                marker.points = obstacle
+                #marker.points.append(Point(0,0))
+                #marker.points.append(Point(random.random(),random.random()))
+                marker.points = points
 
                 marker.color.r = 1
                 marker.color.g = 0.0
@@ -80,7 +89,9 @@ def main():
                 marker.scale.x = 0.01
                 marker.scale.y = 0
                 marker.scale.z = 0
+
                 marker_array.markers.append(marker)
+
                 index += 1
             pub.publish(marker_array)
             r.sleep()
