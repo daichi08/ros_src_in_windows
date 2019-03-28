@@ -4,58 +4,91 @@
 import rospy
 import math
 import numpy as np
-from std_msgs.msg    import Header
 from sensor_msgs.msg import LaserScan
-from sensor_msgs.msg import PointCloud2, PointField
-import sensor_msgs.point_cloud2 as pc2
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
+
+class Point():
+    def __init__(self, x, y, z=0):
+        self.x = x
+        self.y = y
+        self.z = z
 
 obstacles = []
-
-# 点の座標を定義するフレームの名前
-HEADER = Header(frame_id='/laser')
-
-# PointCloud2のフィールドの一覧
-FIELDS = [
-    # 点の座標(x, y, z)
-    PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-    PointField(name='y', offset=0, datatype=PointField.FLOAT32, count=1),
-    PointField(name='z', offset=0, datatype=PointField.FLOAT32, count=1),
-    # 点の色(RGB)
-    # 赤: 0xff0000, 緑:0x00ff00, 青: 0x0000ff
-    # PointField(name='rgb', offset=0, datatype=PointField.UINT32, count=1),
-    ]
+offset    = 90 * math.pi/180.0
 
 def callback(msg):
     global obstacles
     obstacles = []
+    datasize  = len(msg.ranges)
     lines_point = []
     before_vector = msg.ranges[0]
     angle_inc = msg.angle_increment
 
-    for i in range(len(msg.ranges)):
+    for i in range(datasize):
+        angle = msg.angle_min + angle_inc * i
         current_vector = msg.ranges[i]
-        current_point = [current_vector * math.cos(i * angle_inc), current_vector * math.sin(i * angle_inc), 0]
+        current_point = Point(current_vector * math.cos(angle), current_vector * math.sin(angle))
         norm = abs(current_vector - before_vector)
         similarity = 1/(1+norm)
 
-        if similarity > 0.9:
+        if similarity > 0.95:
             lines_point.append(current_point)
         else:
-            obstacles.append(lines_point)
+            if len(lines_point) > 1:
+                obstacles.append(lines_point)
             lines_point = [current_point]
         before_vector = current_vector
-    #for obstacle in obstacles:
-        #print(obstacle)
+
+def main():
+    while not rospy.is_shutdown():
+        rospy.init_node("scan_values")
+        r = rospy.Rate(1)
+        sub = rospy.Subscriber("/scan", LaserScan, callback)
+        pub = rospy.Publisher("/markers", MarkerArray, queue_size=1000)
+
+        marker_array = MarkerArray()
+        if obstacles:
+            index = 0
+            for obstacle in obstacles:
+                marker = Marker()
+
+                marker.header.frame_id = "/laser"
+                marker.header.stamp = rospy.Time.now()
+                marker.id = index
+                marker.type = marker.LINE_LIST
+                marker.action = marker.ADD
+
+                #marker.pose.position.x = 0
+                #marker.pose.position.y = 0
+                #marker.pose.position.z = 0
+
+                marker.pose.orientation.x = 0
+                marker.pose.orientation.y = 0
+                marker.pose.orientation.z = 0
+                marker.pose.orientation.w = 1
+
+                #marker.points.append(obstacle[0])
+                #marker.points.append(obstacle[-1])
+                marker.points = obstacle
+
+                marker.color.r = 1
+                marker.color.g = 0.0
+                marker.color.b = 0.0
+                marker.color.a = 0.5
+
+                marker.scale.x = 0.01
+                marker.scale.y = 0
+                marker.scale.z = 0
+                marker_array.markers.append(marker)
+                index += 1
+            pub.publish(marker_array)
+            r.sleep()
+        else:
+            print("wait")
 
 if __name__ == '__main__':
-    rospy.init_node("scan_values")
-    r = rospy.Rate(1)
-    sub = rospy.Subscriber("/scan", LaserScan, callback)
-    pub = rospy.Publisher("/outline", PointCloud2, queue_size=1000)
-
-    while not rospy.is_shutdown():
-    #for i in range(1):
-        if obstacles:
-            point_cloud = pc2.create_cloud(HEADER, FIELDS, obstacles[3])
-            pub.publish(point_cloud)
-        r.sleep()
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass
