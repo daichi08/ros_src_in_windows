@@ -16,14 +16,11 @@ class Point():
         self.z = z
 
 obstacles = []
-points    = []
 offset    = 90 * math.pi/180.0
 
 def callback(msg):
     global obstacles
-    global points
     obstacles = []
-    points    = []
     datasize  = len(msg.ranges)
     lines_point = []
     before_vector = msg.ranges[0]
@@ -34,7 +31,6 @@ def callback(msg):
         current_vector = msg.ranges[i]
         if not math.isnan(current_vector):
             current_point = Point(current_vector * math.cos(angle), current_vector * math.sin(angle))
-            points.append(current_point)
             norm = abs(current_vector - before_vector)
             similarity = 1/(1+norm)
 
@@ -48,16 +44,14 @@ def callback(msg):
 def main():
     while not rospy.is_shutdown():
         rospy.init_node("scan_values")
-        r = rospy.Rate(20)
-        sub = rospy.Subscriber("/scan", LaserScan, callback)
-        pub = rospy.Publisher("/markers", MarkerArray, queue_size=1000)
+        r = rospy.Rate(1)
+        sub = rospy.Subscriber("/scan", LaserScan, callback, queue_size=1)
+        pub = rospy.Publisher("/markers", MarkerArray, queue_size=3)
         marker_array = MarkerArray()
         index = 0
 
         if obstacles:
-            #for obstacle in obstacles:
-            #for point in points:
-            if points:
+            for obstacle in obstacles:
                 marker = Marker()
 
                 marker.header.frame_id = "/laser"
@@ -75,11 +69,10 @@ def main():
                 marker.pose.orientation.z = 0
                 marker.pose.orientation.w = 1
 
-                #marker.points.append(obstacle[0])
-                #marker.points.append(obstacle[-1])
+                marker.points.append(obstacle[0])
+                marker.points.append(obstacle[-1])
                 #marker.points.append(Point(0,0))
                 #marker.points.append(Point(random.random(),random.random()))
-                marker.points = points
 
                 marker.color.r = 1
                 marker.color.g = 0.0
