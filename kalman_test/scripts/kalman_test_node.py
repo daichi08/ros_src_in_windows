@@ -89,9 +89,9 @@ def main():
 
                 index += 1
             pub.publish(marker_array)
-            r.sleep()
         else:
             print("wait")
+        r.sleep()
 
 if __name__ == '__main__':
     try:
