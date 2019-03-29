@@ -34,7 +34,7 @@ def callback(msg):
             norm = abs(current_vector - before_vector)
             similarity = 1/(1+norm)
 
-            if similarity > 0.94:
+            if similarity > 0.92:
                 lines_point.append(current_point)
             else:
                 obstacles.append(lines_point)
@@ -44,9 +44,9 @@ def callback(msg):
 def main():
     while not rospy.is_shutdown():
         rospy.init_node("scan_values")
-        r = rospy.Rate(1)
+        r = rospy.Rate(20)
         sub = rospy.Subscriber("/scan", LaserScan, callback, queue_size=1)
-        pub = rospy.Publisher("/markers", MarkerArray, queue_size=3)
+        pub = rospy.Publisher("/markers", MarkerArray, queue_size=2)
         marker_array = MarkerArray()
         index = 0
 
@@ -82,6 +82,8 @@ def main():
                 marker.scale.x = 0.01
                 marker.scale.y = 0
                 marker.scale.z = 0
+
+                marker.lifetime = rospy.Duration(1)
 
                 marker_array.markers.append(marker)
 
