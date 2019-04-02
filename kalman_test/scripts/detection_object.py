@@ -22,6 +22,7 @@ def callback(msg):
     global obstacles
     obstacles = []
     datasize  = len(msg.ranges)
+    print(datasize)
     lines_point = []
     before_vector = msg.ranges[0]
     angle_inc = msg.angle_increment
