@@ -16,8 +16,7 @@ void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
     float norm       = 0.0;
     float similarity = 0.0;
     float angle      = 0.0;
-    float point_x    = 0.0;
-    float point_y    = 0.0;
+    float SIM_LIMIT  = 0.95;
 
     vector<float>           before_point(2);
     vector<float>           current_point(2);
@@ -25,19 +24,14 @@ void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
 
     // 初期化
     obstacles.clear();
-    before_point[0] = msg->ranges[0]*cos(msg->angle_min);
-    before_point[1] = msg->ranges[0]*sin(msg->angle_min);
+    before_point[0] = msg->ranges[0]*cos(rad_min);
+    before_point[1] = msg->ranges[0]*sin(rad_min);
 
     for(auto range : msg->ranges){
-        angle      = rad_min + rad_inc * index;
-        point_x    = range * cos(angle);
-        point_y    = range * sin(angle);
-        norm       = 0.0;
-        similarity = 0.0;
-
-        current_point[0] = point_x;
-        current_point[1] = point_y;
+        angle = rad_min + rad_inc * index;
         if (!isnan(range)){
+            current_point[0] = range * cos(angle);
+            current_point[1] = range * sin(angle);
             norm = sqrt(
                         pow(current_point[0]-before_point[0], 2) +
                         pow(current_point[1]-before_point[1], 2)
@@ -45,10 +39,12 @@ void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
             similarity = 1/(1+norm);
 
             if(index == datasize-1){
-                linear_points.push_back(current_point);
+                if(similarity > SIM_LIMIT){
+                    linear_points.push_back(current_point);
+                }
                 obstacles.push_back(linear_points);
                 linear_points.clear();
-            }else if(similarity > 0.95){
+            }else if(similarity > SIM_LIMIT){
                 linear_points.push_back(current_point);
             }else{
                 obstacles.push_back(linear_points);

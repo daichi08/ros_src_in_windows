@@ -5,48 +5,60 @@ import rospy
 import math
 import numpy as np
 import random
-from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg   import LaserScan
+from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 
-class Point():
-    def __init__(self, x, y, z=0):
-        self.x = x
-        self.y = y
-        self.z = z
-
 obstacles = []
-offset    = 90 * math.pi/180.0
 
 def callback(msg):
     global obstacles
+
+    index     = 0
+    SIM_LIMIT = 0.95
+    datasize  = len(msg.ranges)
+    rad_inc   = msg.angle_increment
+    rad_min   = msg.angle_min
+
     obstacles     = []
     linear_points = []
-    datasize  = len(msg.ranges)
-    angle_inc = msg.angle_increment
+    before_point = [
+        msg.ranges[0]*math.cos(rad_min),
+        msg.ranges[0]*math.sin(rad_min)
+    ]
 
-    before_point = Point(msg.ranges[0]*math.cos(msg.angle_min),msg.ranges[0]*math.sin(msg.angle_min))
-
-    for i in range(datasize):
-        angle = msg.angle_min + angle_inc * i
-        current_vector = msg.ranges[i]
-        if not math.isnan(current_vector):
-            current_point = Point(current_vector * math.cos(angle), current_vector * math.sin(angle))
-            norm = math.sqrt(pow(current_point.x-before_point.x, 2)+pow(current_point.y-before_point.y, 2))
+    for range_ in msg.ranges:
+        angle = rad_min + rad_inc * index
+        if not math.isnan(range_):
+            current_point = [
+                range_ * math.cos(angle),
+                range_ * math.sin(angle)
+            ]
+            norm = math.sqrt(
+                pow(current_point[0] - before_point[0], 2)+
+                pow(current_point[1] - before_point[1], 2)
+            )
             similarity = 1/(1+norm)
 
-            if similarity > 0.95:
+            if index == datasize-1:
+                if similarity > SIM_LIMIT:
+                    linear_points.append(current_point)
+                obstacles.append(linear_points)
+                linear_points = []
+            elif similarity > SIM_LIMIT:
                 linear_points.append(current_point)
             else:
                 obstacles.append(linear_points)
                 linear_points = []
         before_point = current_point
+        index += 1
 
 def main():
     rospy.init_node("scan_values")
-    r = rospy.Rate(20)
+    r   = rospy.Rate(20)
     sub = rospy.Subscriber("/scan", LaserScan, callback, queue_size=1)
-    pub = rospy.Publisher("/markers_pi", MarkerArray, queue_size=2)
+    pub = rospy.Publisher("/markers_py", MarkerArray, queue_size=2)
     while not rospy.is_shutdown():
         marker_array = MarkerArray()
         index = 0
@@ -54,7 +66,19 @@ def main():
         if obstacles:
             for obstacle in obstacles:
                 if obstacle:
-                    marker = Marker()
+                    marker      = Marker()
+                    first_point = Point()
+                    last_point  = Point()
+
+                    tmp_first_point = obstacle[0]
+                    tmp_last_point  = obstacle[-1]
+
+                    first_point.x = tmp_first_point[0]
+                    first_point.y = tmp_first_point[1]
+                    first_point.z = 0
+                    last_point.x  = tmp_last_point[0]
+                    last_point.y  = tmp_last_point[1]
+                    last_point.z  = 0
 
                     marker.header.frame_id = "/laser"
                     marker.id = index
@@ -62,19 +86,8 @@ def main():
                     marker.type = marker.LINE_LIST
                     marker.action = marker.ADD
 
-                    #marker.pose.position.x = 0
-                    #marker.pose.position.y = 0
-                    #marker.pose.position.z = 0
-
-                    marker.pose.orientation.x = 0
-                    marker.pose.orientation.y = 0
-                    marker.pose.orientation.z = 0
-                    marker.pose.orientation.w = 1
-
-                    marker.points.append(obstacle[0])
-                    marker.points.append(obstacle[-1])
-                    #marker.points.append(Point(0,0))
-                    #marker.points.append(Point(random.random(),random.random()))
+                    marker.points.append(first_point)
+                    marker.points.append(last_point)
 
                     marker.color.r = 1
                     marker.color.g = 0.0
@@ -85,7 +98,7 @@ def main():
                     marker.scale.y = 0
                     marker.scale.z = 0
 
-                    marker.lifetime = rospy.Duration(1)
+                    marker.lifetime = rospy.Duration(0.05)
 
                     marker_array.markers.append(marker)
 
