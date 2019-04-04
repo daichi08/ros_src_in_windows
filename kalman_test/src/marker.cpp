@@ -54,23 +54,26 @@ void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
 int main(int argc, char **argv){
     ros::init(argc, argv, "marker_node");
     ros::NodeHandle n;
-    ros::Subscriber sub = n.subscribe("scan", 1, callback);
-    ros::Publisher m_pub = n.advertise<visualization_msgs::MarkerArray>("markers", 100);
+    ros::Subscriber sub = n.subscribe("scan", 10, callback);
+    ros::Publisher m_pub = n.advertise<visualization_msgs::MarkerArray>("markers", 10);
     ros::Rate rate(20);
+
+    int index = 0;
 
     while(ros::ok()){
         visualization_msgs::MarkerArray marker_array;
         if(obstacles.empty()){
             ROS_WARN("nothing data");
         }else{
-            for(int i = 0; i < obstacles.size(); i++){
-                if(!obstacles[i].empty()){
+            index = 0;
+            for(auto obstacle : obstacles){
+                if(!obstacle.empty()){
                     visualization_msgs::Marker marker;
 
                     geometry_msgs::Point first_point, last_point;
 
-                    auto tmp_first_point = obstacles[i].front();
-                    auto tmp_last_point  = obstacles[i].back();
+                    auto tmp_first_point = obstacle.front();
+                    auto tmp_last_point  = obstacle.back();
 
                     first_point.x = tmp_first_point[0];
                     first_point.y = tmp_first_point[1];
@@ -80,7 +83,7 @@ int main(int argc, char **argv){
                     last_point.z  = 0;
 
                     marker.header.frame_id = "laser";
-                    marker.id = i;
+                    marker.id = index;
                     marker.ns = "object";
                     marker.type = marker.LINE_LIST;
                     marker.action = marker.ADD;
@@ -88,19 +91,20 @@ int main(int argc, char **argv){
                     marker.points.push_back(first_point);
                     marker.points.push_back(last_point);
 
-                    marker.color.r = 1;
+                    marker.color.r = 0;
                     marker.color.g = 0;
-                    marker.color.b = 0;
+                    marker.color.b = 1;
                     marker.color.a = 0.8;
 
                     marker.scale.x = 0.01;
                     marker.scale.y = 0;
                     marker.scale.z = 0;
 
-                    marker.lifetime = ros::Duration();
+                    marker.lifetime = ros::Duration(1);
 
                     marker_array.markers.push_back(marker);
                 }
+                index += 1;
             }
         }
         m_pub.publish(marker_array);

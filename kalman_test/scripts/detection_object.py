@@ -20,8 +20,8 @@ offset    = 90 * math.pi/180.0
 
 def callback(msg):
     global obstacles
-    obstacles   = []
-    lines_point = []
+    obstacles     = []
+    linear_points = []
     datasize  = len(msg.ranges)
     angle_inc = msg.angle_increment
 
@@ -35,18 +35,18 @@ def callback(msg):
             norm = math.sqrt(pow(current_point.x-before_point.x, 2)+pow(current_point.y-before_point.y, 2))
             similarity = 1/(1+norm)
 
-            if similarity > 0.97:
-                lines_point.append(current_point)
+            if similarity > 0.95:
+                linear_points.append(current_point)
             else:
-                obstacles.append(lines_point)
-                lines_point = []
+                obstacles.append(linear_points)
+                linear_points = []
         before_point = current_point
 
 def main():
     rospy.init_node("scan_values")
     r = rospy.Rate(20)
     sub = rospy.Subscriber("/scan", LaserScan, callback, queue_size=1)
-    pub = rospy.Publisher("/markers", MarkerArray, queue_size=2)
+    pub = rospy.Publisher("/markers_pi", MarkerArray, queue_size=2)
     while not rospy.is_shutdown():
         marker_array = MarkerArray()
         index = 0
