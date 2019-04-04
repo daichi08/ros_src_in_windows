@@ -9,9 +9,15 @@ using namespace std;
 vector< vector< vector<float> > > obstacles;
 
 void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
-    int   datasize  = msg->ranges.size();
-    float rad_inc   = msg->angle_increment;
-    float rad_min   = msg->angle_min;
+    int   index      = 0;
+    int   datasize   = msg->ranges.size();
+    float rad_inc    = msg->angle_increment;
+    float rad_min    = msg->angle_min;
+    float norm       = 0.0;
+    float similarity = 0.0;
+    float angle      = 0.0;
+    float point_x    = 0.0;
+    float point_y    = 0.0;
 
     vector<float>           before_point(2);
     vector<float>           current_point(2);
@@ -22,32 +28,35 @@ void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
     before_point[0] = msg->ranges[0]*cos(msg->angle_min);
     before_point[1] = msg->ranges[0]*sin(msg->angle_min);
 
-    for(int i = 0; i < datasize; i++){
-        float angle      = rad_min + rad_inc * i;
-        float range      = msg->ranges[i];
-        float point_x    = range * cos(angle);
-        float point_y    = range * sin(angle);
-        float norm       = 0.0;
-        float similarity = 0.0;
+    for(auto range : msg->ranges){
+        angle      = rad_min + rad_inc * index;
+        point_x    = range * cos(angle);
+        point_y    = range * sin(angle);
+        norm       = 0.0;
+        similarity = 0.0;
 
         current_point[0] = point_x;
         current_point[1] = point_y;
-        if (isnan(range)){
-            before_point = current_point;
-        }else{
+        if (!isnan(range)){
             norm = sqrt(
                         pow(current_point[0]-before_point[0], 2) +
                         pow(current_point[1]-before_point[1], 2)
                     );
             similarity = 1/(1+norm);
-            if(similarity > 0.95){
+
+            if(index == datasize-1){
+                linear_points.push_back(current_point);
+                obstacles.push_back(linear_points);
+                linear_points.clear();
+            }else if(similarity > 0.95){
                 linear_points.push_back(current_point);
             }else{
                 obstacles.push_back(linear_points);
                 linear_points.clear();
             }
-            before_point = current_point;
         }
+        before_point = current_point;
+        index += 1;
     }
 }
 
