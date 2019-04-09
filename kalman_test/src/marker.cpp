@@ -92,6 +92,7 @@ int main(int argc, char **argv){
                     marker.ns = "object";
                     marker.type = marker.LINE_LIST;
                     marker.action = marker.ADD;
+                    marker.text = to_string(index);
 
                     marker.points.push_back(first_point);
                     marker.points.push_back(last_point);

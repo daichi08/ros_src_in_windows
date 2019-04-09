@@ -54,6 +54,30 @@ def callback(msg):
         before_point = current_point
         index += 1
 
+def circle_fitting(x, y):
+    sumx  = sum(x)
+    sumy  = sum(y)
+    sumx2 = sum([x_i ** 2 for x_i in x])
+    sumy2 = sum([y_i ** 2 for y_i in y])
+    sumxy = sum([x_i * y_i for (x_i, y_i) in zip(x, y)])
+
+    F = np.array([[sumx2,sumxy,sumx],
+                  [sumxy,sumy2,sumy],
+                  [sumx,sumy,len(x)]])
+
+    G = np.array([[-sum([x_i ** 3 + x_i*y_i **2 for (x_i, y_i) in zip(x, y)])],
+                  [-sum([x_i ** 2 *y_i + y_i **3 for (x_i ,y_i) in zip(x, y)])],
+                  [-sum([x_i ** 2 + y_i **2 for (x_i, y_i) in zip(x, y)])]])
+
+    T=np.linalg.inv(F).dot(G)
+
+    cxe=float(T[0]/-2)
+    cye=float(T[1]/-2)
+    re=math.sqrt(cxe**2+cye**2-T[2])
+    #print (cxe,cye,re)
+    return cxe,cye,re
+
+
 def main():
     rospy.init_node("scan_values")
     r   = rospy.Rate(20)
@@ -65,44 +89,39 @@ def main():
 
         if obstacles:
             for obstacle in obstacles:
-                if obstacle:
-                    marker      = Marker()
-                    first_point = Point()
-                    last_point  = Point()
+                if len(obstacle) > 2:
+                    x = list(np.array(obstacle)[:,0])
+                    y = list(np.array(obstacle)[:,1])
+                    c_x, c_y, c_r = circle_fitting(x, y)
 
-                    tmp_first_point = obstacle[0]
-                    tmp_last_point  = obstacle[-1]
+                    # 以下Rviz
+                    marker = Marker()
 
-                    first_point.x = tmp_first_point[0]
-                    first_point.y = tmp_first_point[1]
-                    first_point.z = 0
-                    last_point.x  = tmp_last_point[0]
-                    last_point.y  = tmp_last_point[1]
-                    last_point.z  = 0
-
-                    marker.header.frame_id = "/laser"
+                    marker.header.frame_id = "laser"
+                    marker.header.stamp = rospy.Time.now()
+                    marker.ns = "obstacles"
                     marker.id = index
-                    marker.ns = "object"
-                    marker.type = marker.LINE_LIST
+
+                    marker.type   = marker.CYLINDER
                     marker.action = marker.ADD
 
-                    marker.points.append(first_point)
-                    marker.points.append(last_point)
+                    marker.pose.position.x = c_x
+                    marker.pose.position.y = c_y
+                    marker.pose.position.z = 0
 
-                    marker.color.r = 1
-                    marker.color.g = 0.0
-                    marker.color.b = 0.0
-                    marker.color.a = 0.5
+                    marker.scale.x = c_r
+                    marker.scale.y = c_r
+                    marker.scale.z = 0.1
 
-                    marker.scale.x = 0.01
-                    marker.scale.y = 0
-                    marker.scale.z = 0
+                    marker.color.a = 0.6
+                    marker.color.r = 0
+                    marker.color.g = 1
+                    marker.color.b = 0
 
-                    marker.lifetime = rospy.Duration(0.05)
+                    marker.lifetime = rospy.Duration(0.1)
 
                     marker_array.markers.append(marker)
-
-                    index += 1
+                index += 1
             pub.publish(marker_array)
         else:
             print("wait")
