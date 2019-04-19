@@ -4,6 +4,7 @@
 #include "sensor_msgs/LaserScan.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
+#include "std_msgs/Float32MultiArray.h"
 using namespace std;
 
 vector< vector< vector<float> > > obstacles;
@@ -61,12 +62,14 @@ int main(int argc, char **argv){
     ros::NodeHandle n;
     ros::Subscriber sub = n.subscribe("scan", 10, callback);
     ros::Publisher m_pub = n.advertise<visualization_msgs::MarkerArray>("markers", 10);
+    ros::Publisher pub = n.advertise<std_msgs::Float32MultiArray>("array", 10);
     ros::Rate rate(20);
 
     int index = 0;
 
     while(ros::ok()){
         visualization_msgs::MarkerArray marker_array;
+        std_msgs::Float32MultiArray test;
         if(obstacles.empty()){
             ROS_WARN("nothing data");
         }else{
@@ -114,6 +117,7 @@ int main(int argc, char **argv){
             }
         }
         m_pub.publish(marker_array);
+        pub.publish(test);
 
         ros::spinOnce();
         rate.sleep();
