@@ -38,7 +38,7 @@ inline int calcGrid(int range_max,float position){
 
 }
 
-int calcAngleID(float x, float y){
+int calcAngleID(int x, int y){
     float angle    = atan2(y, x);
     if(angle<0)
         angle += 2*M_PI;
