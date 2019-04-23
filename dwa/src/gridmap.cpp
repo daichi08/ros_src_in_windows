@@ -145,8 +145,11 @@ int main(int argc, char **argv){
     ros::Publisher  pub = nh.advertise<std_msgs::Float32MultiArray>("gridmap", 10);
     ros::Rate       rate(20);
 
+    int map_range = int(round(2*LRF_RANGE/GRID_SIZE));
+
     while(ros::ok()){
         if(!gridmap.empty()){
+            std_msgs::Float32MultiArray grid_msg;
             //printGridmap();
         }
 
