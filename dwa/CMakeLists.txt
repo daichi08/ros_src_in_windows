@@ -149,13 +149,8 @@ target_link_libraries(gridmap
   ${catkin_LIBRARIES}
 )
 
-add_executable(coordinate_world src/coordinate_world.cpp)
-target_link_libraries(coordinate_world
-    ${catkin_LIBRARIES}
-)
-
-add_executable(coordinate_robot src/coordinate_robot.cpp)
-target_link_libraries(coordinate_robot
+add_executable(cartrobot src/cartrobot.cpp)
+target_link_libraries(cartrobot
     ${catkin_LIBRARIES}
 )
 
