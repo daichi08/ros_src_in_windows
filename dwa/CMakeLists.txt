@@ -132,7 +132,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(gridmap src/gridmap.cpp)
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -144,11 +144,22 @@ add_executable(gridmap src/gridmap.cpp)
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_executable(gridmap src/gridmap.cpp)
 target_link_libraries(gridmap
   ${catkin_LIBRARIES}
 )
 
-add_executable(dwa_simulator src/dwa_sim.cpp)
+add_executable(coordinate_world src/coordinate_world.cpp)
+target_link_libraries(coordinate_world
+    ${catkin_LIBRARIES}
+)
+
+add_executable(coordinate_robot src/coordinate_robot.cpp)
+target_link_libraries(coordinate_robot
+    ${catkin_LIBRARIES}
+)
+
+add_executable(dwa_simulator src/dwa_simulator.cpp)
 target_link_libraries(dwa_simulator
     ${catkin_LIBRARIES}
 )

@@ -8,6 +8,22 @@
 using namespace std;
 
 vector< vector< vector<float> > > obstacles;
+const float SIM_LIMIT = 0.94;
+
+void create_dataset(){
+    float x_size = 0.0;
+    float y_size = 0.0;
+    float min_x  = 0.0;
+    float min_y  = 0.0;
+    float max_x  = 0.0;
+    float max_y  = 0.0;
+
+    for(auto obstacle:obstacles){
+        for(auto point:obstacle){
+
+        }
+    }
+}
 
 void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
     int   index      = 0;
@@ -17,7 +33,6 @@ void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
     float norm       = 0.0;
     float similarity = 0.0;
     float angle      = 0.0;
-    float SIM_LIMIT  = 0.95;
 
     vector<float>           before_point(2);
     vector<float>           current_point(2);
@@ -30,7 +45,7 @@ void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
 
     for(auto range : msg->ranges){
         angle = rad_min + rad_inc * index;
-        if (!isnan(range)){
+        if (!isnan(range) && range != 0){
             current_point[0] = range * cos(angle);
             current_point[1] = range * sin(angle);
             norm = sqrt(
@@ -100,9 +115,9 @@ int main(int argc, char **argv){
                     marker.points.push_back(first_point);
                     marker.points.push_back(last_point);
 
-                    marker.color.r = 0;
+                    marker.color.r = 1;
                     marker.color.g = 0;
-                    marker.color.b = 1;
+                    marker.color.b = 0;
                     marker.color.a = 0.8;
 
                     marker.scale.x = 0.01;
