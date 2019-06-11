@@ -159,6 +159,11 @@ target_link_libraries(dwa_simulator
     ${catkin_LIBRARIES}
 )
 
+add_executable(marker src/marker.cpp)
+target_link_libraries(marker
+    ${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############

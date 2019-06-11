@@ -58,7 +58,7 @@ void callback(const sensor_msgs::LaserScan::ConstPtr& msg){
 }
 
 int main(int argc, char **argv){
-    ros::init(argc, argv, "marker_node");
+    ros::init(argc, argv, "marker");
     ros::NodeHandle n;
     ros::Subscriber sub = n.subscribe("scan", 10, callback);
     ros::Publisher m_pub = n.advertise<visualization_msgs::MarkerArray>("markers", 10);
