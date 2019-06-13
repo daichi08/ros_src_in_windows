@@ -164,6 +164,17 @@ target_link_libraries(marker
     ${catkin_LIBRARIES}
 )
 
+add_executable(goalmaker src/goalmaker.cpp)
+target_link_libraries(goalmaker
+    ${catkin_LIBRARIES}
+)
+
+add_executable(transform_point src/transform_point.cpp)
+target_link_libraries(transform_point
+    ${catkin_LIBRARIES}
+)
+
+
 #############
 ## Install ##
 #############
