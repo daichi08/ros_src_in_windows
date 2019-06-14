@@ -159,8 +159,8 @@ target_link_libraries(dwa_simulator
     ${catkin_LIBRARIES}
 )
 
-add_executable(marker src/marker.cpp)
-target_link_libraries(marker
+add_executable(division_points src/division_points.cpp)
+target_link_libraries(division_points
     ${catkin_LIBRARIES}
 )
 
@@ -168,12 +168,6 @@ add_executable(goalmaker src/goalmaker.cpp)
 target_link_libraries(goalmaker
     ${catkin_LIBRARIES}
 )
-
-add_executable(transform_point src/transform_point.cpp)
-target_link_libraries(transform_point
-    ${catkin_LIBRARIES}
-)
-
 
 #############
 ## Install ##
