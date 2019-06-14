@@ -126,8 +126,8 @@ class DWA{
          * @brief 一定時間後に存在できる位置の計算
          * @return まだ適当
          */
-        vector< vector< vector<float> > > predict_status(){
-            vector<float> limits = simbot.set_limits();
+        vector< vector< vector<float> > > predict_status(vector<float> current_status){
+            vector<float> limits = simbot.set_limits(current_status);
 
             int v_steps  = int((limits[0] - limits[1])/V_RES);
             int om_steps = int((limits[2] - limits[3])/OM_RES);
@@ -231,13 +231,12 @@ int main(int argc, char **argv){
     CartRobot cartbot;
 
     vector< vector< vector<float> > > next_statuses;
-    
-    float u_v  = 0;
-    float u_om = 0;
+    vector<float> current_status(5);
 
     while(ros::ok()){
+        current_status = cartbot.update_status(u_v, u_om);
         if(lrf_sub_flg){
-            next_statuses = simulator.predict_status(cartbot.update_status(u_v, u_om));
+            next_statuses = simulator.predict_status(current_status);
         }
         ros::spinOnce();
         rate.sleep();
