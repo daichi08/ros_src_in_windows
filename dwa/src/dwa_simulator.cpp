@@ -79,7 +79,7 @@ class SimRobot{
             OM_ACC_MAX = DEG2RAD(100)*DT;
         };
         /**
-         * @brief 次のステップで取りうる速度類のリミット計算 
+         * @brief 次のステップで取りうる速度類のリミット計算
          */
         vector<float> set_limits(vector<float> current_status){
             vector<float> limits(4);
@@ -240,6 +240,7 @@ int main(int argc, char **argv){
         current_status = cartbot.update_status(u_v, u_om);
         if(lrf_sub_flg){
             next_statuses = simulator.predict_status(current_status);
+            cout << "hogehoge" << endl;
         }
         ros::spinOnce();
         rate.sleep();
