@@ -24,7 +24,7 @@ using namespace std;
 #define DEG2RAD(x) ((x)*M_PI/180.0)
 
 //! 点群の分割に使用する類似度
-const float SIM_LIMIT = 0.94;
+const float SIM_LIMIT = 0.95;
 //! LRF座標系とロボット座標系の位相
 const float ANGLE_DIFF = M_PI/2;
 //! 制御周期の逆数
@@ -33,6 +33,8 @@ const float DT = 0.05;
 float u_v  = 0;
 //! 次のステップにおける回転速度入力
 float u_om = 0;
+//! LRFからのデータ受信フラグ
+bool lrf_sub_flg = false;
 //! 分割された点群を収めるベクトル
 vector< vector< vector<float> > > objects;
 //! 実際のロボットの現在状態
@@ -45,33 +47,27 @@ class CartRobot{
     private:
         vector<float> status_vector;
     public:
-        CartRobot();
-
-        void update_status();
-        vector<float> current_status();
+        /**
+         * @brief 状態ベクトルの初期化
+         */
+        CartRobot(){
+            status_vector.resize(5);
+            status_vector = {0, 0, M_PI/2, 0, 0}
+        };
+        /**
+         * @brief 状態ベクトルの更新
+         */
+        void update_status(){
+            status_vector[3] = u_v;
+            status_vector[4] = u_om;
+        };
+        /**
+         * @brief 状態ベクトルの配信
+         */
+        vector<float> current_status(){
+            return status_vector;
+        };
 };
-/**
- * @brief 状態ベクトルの初期化
- */
-CartRobot::CartRobot(){
-    status_vector.resize(5);
-    status_vector = {0, 0, M_PI/2, 0, 0};
-}
-
-/**
- * @brief 状態ベクトルの更新
- */
-void CartRobot::update_status(){
-    status_vector[3] = u_v;
-    status_vector[4] = u_om;
-}
-
-/**
- * @brief 状態ベクトルの配信
- */
-vector<float> CartRobot::current_status(){
-    return status_vector;
-}
 
 /**
  * @brief シミュレーション用ロボットクラス
@@ -186,7 +182,9 @@ int DWA::predict_status(){
     return 0;
 }
 
-/* コールバック関数 */
+/**
+ * @brief LRFから得た点群を分割するコールバック関数
+ */
 void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     int   index      = 0;
     int   datasize   = msg->ranges.size();
@@ -200,8 +198,8 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     vector<float>           current_point(2);
     vector< vector<float> > linear_points;
 
-    // 初期化
     objects.clear();
+    lrf_sub_flg = true;
 
     for(auto range : msg->ranges){
         angle = rad_min + rad_inc * index + ANGLE_DIFF;
@@ -244,10 +242,14 @@ int main(int argc, char **argv){
     ros::Subscriber lrf_sub = n.subscribe("scan", 10, division_point);
     ros::Rate       rate(20);
 
-    DWA simulator;
+    DWA       simulator;
+    CartRobot cartbot;
 
     while(ros::ok()){
-        simulator.predict_status();
+        if(lrf_sub_flg){
+            simulator.predict_status();
+
+        }
         ros::spinOnce();
         rate.sleep();
     }
