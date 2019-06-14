@@ -233,6 +233,9 @@ int main(int argc, char **argv){
     vector< vector< vector<float> > > next_statuses;
     vector<float> current_status(5);
 
+    float u_v  = 0;
+    float u_om = 0;
+
     while(ros::ok()){
         current_status = cartbot.update_status(u_v, u_om);
         if(lrf_sub_flg){
