@@ -52,7 +52,7 @@ class CartRobot{
          */
         CartRobot(){
             status_vector.resize(5);
-            status_vector = {0, 0, M_PI/2, 0, 0}
+            status_vector = {0, 0, M_PI/2, 0, 0};
         };
         /**
          * @brief 状態ベクトルの更新
