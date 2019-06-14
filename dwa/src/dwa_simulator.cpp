@@ -23,22 +23,10 @@ using namespace std;
  */
 #define DEG2RAD(x) ((x)*M_PI/180.0)
 
-//! 点群の分割に使用する類似度
-const float SIM_LIMIT = 0.95;
-//! LRF座標系とロボット座標系の位相
-const float ANGLE_DIFF = M_PI/2;
-//! 制御周期の逆数
-const float DT = 0.05;
-//! 次のステップにおける速度入力
-float u_v  = 0;
-//! 次のステップにおける回転速度入力
-float u_om = 0;
 //! LRFからのデータ受信フラグ
 bool lrf_sub_flg = false;
 //! 分割された点群を収めるベクトル
 vector< vector< vector<float> > > objects;
-//! 実際のロボットの現在状態
-vector<float> current_status(5);
 
 /**
  * @brief 実際のロボットクラス
@@ -57,14 +45,10 @@ class CartRobot{
         /**
          * @brief 状態ベクトルの更新
          */
-        void update_status(){
+        vector<float> update_status(){
             status_vector[3] = u_v;
             status_vector[4] = u_om;
-        };
-        /**
-         * @brief 状態ベクトルの配信
-         */
-        vector<float> current_status(){
+
             return status_vector;
         };
 };
@@ -80,11 +64,13 @@ class SimRobot{
         float OM_MIN;
         float V_ACC_MAX;
         float OM_ACC_MAX;
+        float DT;
     public:
         /**
          * @brief 物理パラメータの設定
          */
         SimRobot(){
+            DT         = 0.05;
             V_MAX      = 1.4;
             V_MIN      = 0.0;
             V_ACC_MAX  = 9*DT;
@@ -140,7 +126,7 @@ class DWA{
          * @brief 一定時間後に存在できる位置の計算
          * @return まだ適当
          */
-        int predict_status(){
+        vector< vector< vector<float> > > predict_status(){
             vector<float> limits = simbot.set_limits();
 
             int v_steps  = int((limits[0] - limits[1])/V_RES);
@@ -149,7 +135,7 @@ class DWA{
 
             float v  = 0;
             float om = 0;
-            vector<vector<vector<float>>> next_statuses(v_steps*om_steps, vector<vector<float>>(PRE_STEP, current_status));
+            vector< vector< vector<float> > > next_statuses(v_steps*om_steps, vector<vector<float>>(PRE_STEP, current_status));
 
             for(int i = 0; i < v_steps; i++){
                 v = limits[1]+V_RES*i;
@@ -172,7 +158,7 @@ class DWA{
                     index++;
                 }
             }
-            return 0;
+            return next_statuses;
         };
 };
 
@@ -180,6 +166,11 @@ class DWA{
  * @brief LRFから得た点群を分割するコールバック関数
  */
 void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
+    //! 点群の分割に使用する類似度
+    const float SIM_LIMIT = 0.95;
+    //! LRF座標系とロボット座標系の位相
+    const float ANGLE_DIFF = M_PI/2;
+
     int   index      = 0;
     int   datasize   = msg->ranges.size();
     float rad_inc    = msg->angle_increment;
@@ -239,10 +230,11 @@ int main(int argc, char **argv){
     DWA       simulator;
     CartRobot cartbot;
 
+    vector< vector< vector<float> > > next_statuses;
+
     while(ros::ok()){
         if(lrf_sub_flg){
-            simulator.predict_status();
-
+            next_statuses = simulator.predict_status();
         }
         ros::spinOnce();
         rate.sleep();
