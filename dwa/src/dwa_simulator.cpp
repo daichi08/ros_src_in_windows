@@ -1,14 +1,81 @@
+/**
+ * @file   dwa_simulator.cpp
+ * @brief  DWAで経路計画をおこなうプログラム
+ * @author daichi08
+ * @date   2019-06-04
+ */
+
 #include "ros/ros.h"
+#include "sensor_msgs/LaserScan.h"
 #include "std_msgs/Float32MultiArray.h"
+#include "vector"
 #include "cmath"
 
-#define DEG2RAD(x) ((x)*M_PI/180.0)
-#define DT 0.05
-
+/**
+ * @namespace std
+ * @brief     標準のやつ
+ */
 using namespace std;
-vector<float> current_status(5);
-bool          subscribe_flg = false;
 
+/**
+ * @def   DEG2RAD
+ * @brief deg->rad変換用
+ */
+#define DEG2RAD(x) ((x)*M_PI/180.0)
+
+//! 点群の分割に使用する類似度
+const float SIM_LIMIT = 0.94;
+//! LRF座標系とロボット座標系の位相
+const float ANGLE_DIFF = M_PI/2;
+//! 制御周期の逆数
+const float DT = 0.05;
+//! 次のステップにおける速度入力
+float u_v  = 0;
+//! 次のステップにおける回転速度入力
+float u_om = 0;
+//! 分割された点群を収めるベクトル
+vector< vector< vector<float> > > objects;
+//! 実際のロボットの現在状態
+vector<float> current_status(5);
+
+/**
+ * @brief 実際のロボットクラス
+ */
+class CartRobot{
+    private:
+        vector<float> status_vector;
+    public:
+        CartRobot();
+
+        void update_status();
+        vector<float> current_status();
+};
+/**
+ * @brief 状態ベクトルの初期化
+ */
+CartRobot::CartRobot(){
+    status_vector.resize(5);
+    status_vector = {0, 0, M_PI/2, 0, 0};
+}
+
+/**
+ * @brief 状態ベクトルの更新
+ */
+void CartRobot::update_status(){
+    status_vector[3] = u_v;
+    status_vector[4] = u_om;
+}
+
+/**
+ * @brief 状態ベクトルの配信
+ */
+vector<float> CartRobot::current_status(){
+    return status_vector;
+}
+
+/**
+ * @brief シミュレーション用ロボットクラス
+ */
 class SimRobot{
     private:
         float V_MAX;
@@ -21,7 +88,9 @@ class SimRobot{
         SimRobot();
         vector<float> set_limits();
 };
-
+/**
+ * @brief 物理パラメータの設定
+ */
 SimRobot::SimRobot(){
     V_MAX      = 1.4;
     V_MIN      = 0.0;
@@ -30,7 +99,9 @@ SimRobot::SimRobot(){
     OM_MIN     = DEG2RAD(-60);
     OM_ACC_MAX = DEG2RAD(100)*DT;
 }
-
+/**
+ * @brief 次のステップで取りうる速度類のリミット計算 
+ */
 vector<float> SimRobot::set_limits(){
     vector<float> limits(4);
     limits[0] = min(current_status[3]+V_ACC_MAX,  V_MAX);
@@ -41,8 +112,9 @@ vector<float> SimRobot::set_limits(){
     return limits;
 }
 
-
-
+/**
+ * @brief DWAシミュレーション用クラス
+ */
 class DWA{
     private:
         SimRobot simbot;
@@ -59,6 +131,9 @@ class DWA{
         int predict_status();
 };
 
+/**
+ * @brief シミュレーション用パラメータの設定
+ */
 DWA::DWA(){
     V_RES  = 0.1;
     OM_RES = DEG2RAD(2);
@@ -72,6 +147,10 @@ DWA::DWA(){
     W_OBS = 0.5;
 }
 
+/**
+ * @brief 一定時間後に存在できる位置の計算
+ * @return まだ適当
+ */
 int DWA::predict_status(){
     vector<float> limits = simbot.set_limits();
 
@@ -104,47 +183,73 @@ int DWA::predict_status(){
             index++;
         }
     }
-
-    for(const auto next_status:next_statuses){
-        for(const auto status_vector:next_status){
-
-        }
-    }
-
-    /*for(int i=0;i < v_steps*om_steps; i++){
-        for(int j=0;j < PRE_STEP;j++){
-            cout << "[";
-            for(int k=0;k < 5; k++){
-                cout << next_statuses[i][j][k] << ",";
-            }
-            cout << "]" << endl;
-        }
-        cout << "===================" << endl;
-    }
-    cout << "*******************" << endl;
-    */
-
     return 0;
 }
 
-void callback(const std_msgs::Float32MultiArray::ConstPtr& msg){
-    current_status = msg->data;
-    subscribe_flg  = true;
+/* コールバック関数 */
+void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
+    int   index      = 0;
+    int   datasize   = msg->ranges.size();
+    float rad_inc    = msg->angle_increment;
+    float rad_min    = msg->angle_min;
+    float point_norm = 0.0;
+    float similarity = 0.0;
+    float angle      = 0.0;
+
+    vector<float>           before_point(2);
+    vector<float>           current_point(2);
+    vector< vector<float> > linear_points;
+
+    // 初期化
+    objects.clear();
+
+    for(auto range : msg->ranges){
+        angle = rad_min + rad_inc * index + ANGLE_DIFF;
+        if(index == 0){
+            current_point[0] = range * cos(angle);
+            current_point[1] = range * sin(angle);
+            if(!isnan(range) && range != 0){
+                linear_points.push_back(current_point);
+            }
+        }else if(!isnan(range) && range != 0){
+            current_point[0] = range * cos(angle);
+            current_point[1] = range * sin(angle);
+            point_norm = sqrt(
+                            pow(current_point[0]-before_point[0], 2) +
+                            pow(current_point[1]-before_point[1], 2)
+                         );
+            similarity = 1/(1+point_norm);
+
+            if(index == datasize-1){
+                if(similarity > SIM_LIMIT){
+                    linear_points.push_back(current_point);
+                }
+                objects.push_back(linear_points);
+                linear_points.clear();
+            }else if(similarity > SIM_LIMIT){
+                linear_points.push_back(current_point);
+            }else if(!linear_points.empty()){
+                objects.push_back(linear_points);
+                linear_points.clear();
+            }
+        }
+        before_point = current_point;
+        index += 1;
+    }
 }
 
 int main(int argc, char **argv){
     ros::init(argc, argv, "dwa_sim");
     ros::NodeHandle n;
-    ros::Subscriber sub_status = n.subscribe("cart_status", 5, callback);
+    ros::Subscriber lrf_sub = n.subscribe("scan", 10, division_point);
     ros::Rate       rate(20);
 
     DWA simulator;
 
     while(ros::ok()){
-        if(subscribe_flg){
-            simulator.predict_status();
-        }
+        simulator.predict_status();
         ros::spinOnce();
         rate.sleep();
     }
+    return 0;
 }
