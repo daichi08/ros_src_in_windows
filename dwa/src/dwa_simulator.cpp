@@ -81,32 +81,30 @@ class SimRobot{
         float V_ACC_MAX;
         float OM_ACC_MAX;
     public:
-        SimRobot();
-        vector<float> set_limits();
-};
-/**
- * @brief 物理パラメータの設定
- */
-SimRobot::SimRobot(){
-    V_MAX      = 1.4;
-    V_MIN      = 0.0;
-    V_ACC_MAX  = 9*DT;
-    OM_MAX     = DEG2RAD(60);
-    OM_MIN     = DEG2RAD(-60);
-    OM_ACC_MAX = DEG2RAD(100)*DT;
-}
-/**
- * @brief 次のステップで取りうる速度類のリミット計算 
- */
-vector<float> SimRobot::set_limits(){
-    vector<float> limits(4);
-    limits[0] = min(current_status[3]+V_ACC_MAX,  V_MAX);
-    limits[1] = max(current_status[3]-V_ACC_MAX,  V_MIN);
-    limits[2] = min(current_status[4]+OM_ACC_MAX, OM_MAX);
-    limits[3] = max(current_status[4]-OM_ACC_MAX, OM_MIN);
+        /**
+         * @brief 物理パラメータの設定
+         */
+        SimRobot(){
+            V_MAX      = 1.4;
+            V_MIN      = 0.0;
+            V_ACC_MAX  = 9*DT;
+            OM_MAX     = DEG2RAD(60);
+            OM_MIN     = DEG2RAD(-60);
+            OM_ACC_MAX = DEG2RAD(100)*DT;
+        };
+        /**
+         * @brief 次のステップで取りうる速度類のリミット計算 
+         */
+        vector<float> set_limits(){
+            vector<float> limits(4);
+            limits[0] = min(current_status[3]+V_ACC_MAX,  V_MAX);
+            limits[1] = max(current_status[3]-V_ACC_MAX,  V_MIN);
+            limits[2] = min(current_status[4]+OM_ACC_MAX, OM_MAX);
+            limits[3] = max(current_status[4]-OM_ACC_MAX, OM_MIN);
 
-    return limits;
-}
+            return limits;
+        };
+};
 
 /**
  * @brief DWAシミュレーション用クラス
@@ -123,64 +121,60 @@ class DWA{
         float    W_VEL;
         float    W_OBS;
     public:
-        DWA();
-        int predict_status();
-};
+        /**
+         * @brief シミュレーション用パラメータの設定
+         */
+        DWA(){
+            V_RES  = 0.1;
+            OM_RES = DEG2RAD(2);
 
-/**
- * @brief シミュレーション用パラメータの設定
- */
-DWA::DWA(){
-    V_RES  = 0.1;
-    OM_RES = DEG2RAD(2);
+            SIM_TIME  = 2;
+            SAMP_TIME = 0.1;
+            PRE_STEP  = int(SIM_TIME/SAMP_TIME);
 
-    SIM_TIME  = 2;
-    SAMP_TIME = 0.1;
-    PRE_STEP  = int(SIM_TIME/SAMP_TIME);
+            W_ANG = 0.5;
+            W_VEL = 0.5;
+            W_OBS = 0.5;
+        };
+        /**
+         * @brief 一定時間後に存在できる位置の計算
+         * @return まだ適当
+         */
+        int predict_status(){
+            vector<float> limits = simbot.set_limits();
 
-    W_ANG = 0.5;
-    W_VEL = 0.5;
-    W_OBS = 0.5;
-}
+            int v_steps  = int((limits[0] - limits[1])/V_RES);
+            int om_steps = int((limits[2] - limits[3])/OM_RES);
+            int index = 0;
 
-/**
- * @brief 一定時間後に存在できる位置の計算
- * @return まだ適当
- */
-int DWA::predict_status(){
-    vector<float> limits = simbot.set_limits();
+            float v  = 0;
+            float om = 0;
+            vector<vector<vector<float>>> next_statuses(v_steps*om_steps, vector<vector<float>>(PRE_STEP, current_status));
 
-    int v_steps  = int((limits[0] - limits[1])/V_RES);
-    int om_steps = int((limits[2] - limits[3])/OM_RES);
-    int index = 0;
+            for(int i = 0; i < v_steps; i++){
+                v = limits[1]+V_RES*i;
+                for(int j = 0; j < om_steps; j++){
+                    om = limits[3]+OM_RES*j;
 
-    float v  = 0;
-    float om = 0;
-    vector<vector<vector<float>>> next_statuses(v_steps*om_steps, vector<vector<float>>(PRE_STEP, current_status));
-
-    for(int i = 0; i < v_steps; i++){
-        v = limits[1]+V_RES*i;
-        for(int j = 0; j < om_steps; j++){
-            om = limits[3]+OM_RES*j;
-
-            for(int k = 0; k < PRE_STEP; k++){
-                if(k == 0){
-                    next_statuses[index][k][0] = v * cos(current_status[2]) * SAMP_TIME + current_status[0];
-                    next_statuses[index][k][1] = v * sin(current_status[2]) * SAMP_TIME + current_status[1];
-                    next_statuses[index][k][2] = om * SAMP_TIME + current_status[2];
-                }else{
-                    next_statuses[index][k][0] = v * cos(next_statuses[index][k-1][2]) * SAMP_TIME + next_statuses[index][k-1][0];
-                    next_statuses[index][k][1] = v * sin(next_statuses[index][k-1][2]) * SAMP_TIME + next_statuses[index][k-1][1];
-                    next_statuses[index][k][2] = om * SAMP_TIME + next_statuses[index][k-1][2];
+                    for(int k = 0; k < PRE_STEP; k++){
+                        if(k == 0){
+                            next_statuses[index][k][0] = v * cos(current_status[2]) * SAMP_TIME + current_status[0];
+                            next_statuses[index][k][1] = v * sin(current_status[2]) * SAMP_TIME + current_status[1];
+                            next_statuses[index][k][2] = om * SAMP_TIME + current_status[2];
+                        }else{
+                            next_statuses[index][k][0] = v * cos(next_statuses[index][k-1][2]) * SAMP_TIME + next_statuses[index][k-1][0];
+                            next_statuses[index][k][1] = v * sin(next_statuses[index][k-1][2]) * SAMP_TIME + next_statuses[index][k-1][1];
+                            next_statuses[index][k][2] = om * SAMP_TIME + next_statuses[index][k-1][2];
+                        }
+                        next_statuses[index][k][3] = v;
+                        next_statuses[index][k][4] = om;
+                    }
+                    index++;
                 }
-                next_statuses[index][k][3] = v;
-                next_statuses[index][k][4] = om;
             }
-            index++;
-        }
-    }
-    return 0;
-}
+            return 0;
+        };
+};
 
 /**
  * @brief LRFから得た点群を分割するコールバック関数
