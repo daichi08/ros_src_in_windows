@@ -45,7 +45,7 @@ class CartRobot{
         /**
          * @brief 状態ベクトルの更新
          */
-        vector<float> update_status(){
+        vector<float> update_status(float u_v, float u_om){
             status_vector[3] = u_v;
             status_vector[4] = u_om;
 
@@ -81,7 +81,7 @@ class SimRobot{
         /**
          * @brief 次のステップで取りうる速度類のリミット計算 
          */
-        vector<float> set_limits(){
+        vector<float> set_limits(vector<float> current_status){
             vector<float> limits(4);
             limits[0] = min(current_status[3]+V_ACC_MAX,  V_MAX);
             limits[1] = max(current_status[3]-V_ACC_MAX,  V_MIN);
@@ -231,10 +231,13 @@ int main(int argc, char **argv){
     CartRobot cartbot;
 
     vector< vector< vector<float> > > next_statuses;
+    
+    float u_v  = 0;
+    float u_om = 0;
 
     while(ros::ok()){
         if(lrf_sub_flg){
-            next_statuses = simulator.predict_status();
+            next_statuses = simulator.predict_status(cartbot.update_status(u_v, u_om));
         }
         ros::spinOnce();
         rate.sleep();
