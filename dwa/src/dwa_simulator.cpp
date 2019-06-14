@@ -217,7 +217,7 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
             }
         }
         before_point = current_point;
-        index += 1;
+        index++;
     }
 }
 
@@ -240,7 +240,7 @@ int main(int argc, char **argv){
         current_status = cartbot.update_status(u_v, u_om);
         if(lrf_sub_flg){
             next_statuses = simulator.predict_status(current_status);
-            cout << "hogehoge" << endl;
+
         }
         ros::spinOnce();
         rate.sleep();
