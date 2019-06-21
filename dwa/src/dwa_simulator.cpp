@@ -163,21 +163,6 @@ class DWA{
 };
 
 /**
- * @brief 点群の分類
- */
-class classification_objects{
-private:
-    vector<float> goal;
-public:
-    classification_objects(){
-        goal.resize(2, 0.0);
-    };
-    vector<float> publish_position(){
-        return goal;
-    };
-};
-
-/**
  * @brief LRFから得た点群を分割するコールバック関数
  */
 void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
@@ -200,6 +185,10 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
 
     objects.clear();
     lrf_sub_flg = true;
+
+    //! カートの最も近い点記憶用(SVM等使う用になった場合は消す)
+    float nearest_dist = *min_element(msg->ranges);
+    cout << nearest_dist << endl;
 
     for(auto range : msg->ranges){
         angle = rad_min + rad_inc * index + ANGLE_DIFF;
