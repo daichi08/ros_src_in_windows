@@ -259,7 +259,7 @@ int main(int argc, char **argv){
             current_status = cartbot.update_status(u_v, u_om);
             next_statuses  = simulator.predict_status(current_status);
 
-            cout << *min_element(objects.begin(), objects.end());
+            cout << *min_element(objects.begin(), objects.end()) << endl;
         }
         ros::spinOnce();
         rate.sleep();
