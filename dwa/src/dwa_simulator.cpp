@@ -245,7 +245,11 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
             labels.push_back(0);
         }
     }
-
+    for(int label:labels){
+        cout << label << ",";
+    }
+    cout << endl;
+    
 }
 
 /**
