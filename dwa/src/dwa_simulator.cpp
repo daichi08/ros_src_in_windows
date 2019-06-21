@@ -165,11 +165,11 @@ class DWA{
 /**
  * @brief 点群の分類
  */
-class classification_objexts{
+class classification_objects{
 private:
     vector<float> goal;
 public:
-    Goal(){
+    classification_objects(){
         position.resize(2, 0.0);
     };
     vector<float> publish_position(){
@@ -259,7 +259,8 @@ int main(int argc, char **argv){
             current_status = cartbot.update_status(u_v, u_om);
             next_statuses  = simulator.predict_status(current_status);
 
-            cout << *min_element(objects.begin(), objects.end()) << endl;
+            float min_elm = *min_element(objects.begin(), objects.end());
+            cout << min_elm << endl;
         }
         ros::spinOnce();
         rate.sleep();
