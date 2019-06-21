@@ -197,10 +197,17 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
 
     //! 一時的な応急処置
     float nearest_dist = *min_element(msg->ranges.begin(), msg->ranges.end());
+    vector<float> nearest_point(2, 0.0);
 
     for(auto range : msg->ranges){
         angle = rad_min + rad_inc * index + ANGLE_DIFF;
         current_point = {range * cos(angle), range * sin(angle)};
+
+        //! 一時的な応急処置
+        if(range == nearest_dist){
+            nearest_point = current_point;
+        }
+
         if(!isnan(range) && range != 0){
             if(index == 0){
                 linear_points.push_back(current_point);
@@ -228,6 +235,16 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
         before_point = current_point;
         index++;
     }
+
+    //! 一時的な応急処置
+    for(auto object:objects){
+        if(find(object.begin(), object.end(), nearest_point)){
+            labels.push_back(1);
+        }else{
+            labels.push_back(0);
+        }
+    }
+
 }
 
 /**
