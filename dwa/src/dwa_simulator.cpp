@@ -240,16 +240,16 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     for(auto object:objects){
         auto itr = find(object.begin(), object.end(), nearest_point);
         if(itr == object.end()){
-            labels.push_back(1);
-        }else{
             labels.push_back(0);
+        }else{
+            labels.push_back(1);
         }
     }
     for(int label:labels){
         cout << label << ",";
     }
     cout << endl;
-    
+
 }
 
 /**
