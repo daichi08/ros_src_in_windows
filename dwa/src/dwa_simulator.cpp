@@ -186,14 +186,19 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     objects.clear();
     lrf_sub_flg = true;
 
-    //! カートの最も近い点記憶用(SVM等使う用になった場合は消す)
-    float nearest_dist = *max_element(msg->ranges.begin(), msg->ranges.end());
-    cout << nearest_dist << endl;
+    //! 応急処理
+    float nearest_dist = 8.0;
 
     for(auto range : msg->ranges){
         angle = rad_min + rad_inc * index + ANGLE_DIFF;
         current_point = {range * cos(angle), range * sin(angle)};
         if(!isnan(range) && range != 0){
+
+            //! 応急処理
+            if(range < nearest_dist){
+                nearest_dist = range;
+            }
+
             if(index == 0){
                 linear_points.push_back(current_point);
             }else{
@@ -220,6 +225,8 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
         before_point = current_point;
         index++;
     }
+    //! 応急処理
+    cout << nearest_dist << endl;
 }
 
 /**
