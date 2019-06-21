@@ -27,6 +27,7 @@ using namespace std;
 bool lrf_sub_flg = false;
 //! 分割された点群を収めるベクトル
 vector< vector< vector<float> > > objects;
+vector<int> labels;
 
 /**
  * @brief 実際のロボットクラス
@@ -83,10 +84,12 @@ class SimRobot{
          */
         vector<float> set_limits(vector<float> current_status){
             vector<float> limits(4);
-            limits[0] = min(current_status[3]+V_ACC_MAX,  V_MAX);
-            limits[1] = max(current_status[3]-V_ACC_MAX,  V_MIN);
-            limits[2] = min(current_status[4]+OM_ACC_MAX, OM_MAX);
-            limits[3] = max(current_status[4]-OM_ACC_MAX, OM_MIN);
+            limits = {
+                        min(current_status[3]+V_ACC_MAX,  V_MAX), 
+                        max(current_status[3]-V_ACC_MAX,  V_MIN),
+                        min(current_status[4]+OM_ACC_MAX, OM_MAX),
+                        max(current_status[4]-OM_ACC_MAX, OM_MIN)
+                    };
 
             return limits;
         };
@@ -144,16 +147,22 @@ class DWA{
 
                     for(int k = 0; k < PRE_STEP; k++){
                         if(k == 0){
-                            next_statuses[index][k][0] = v * cos(current_status[2]) * SAMP_TIME + current_status[0];
-                            next_statuses[index][k][1] = v * sin(current_status[2]) * SAMP_TIME + current_status[1];
-                            next_statuses[index][k][2] = om * SAMP_TIME + current_status[2];
+                            next_statuses[index][k] = {
+                                                        v * cos(current_status[2]) * SAMP_TIME + current_status[0],
+                                                        v * sin(current_status[2]) * SAMP_TIME + current_status[1],
+                                                        om * SAMP_TIME + current_status[2],
+                                                        v,
+                                                        om
+                                                    };
                         }else{
-                            next_statuses[index][k][0] = v * cos(next_statuses[index][k-1][2]) * SAMP_TIME + next_statuses[index][k-1][0];
-                            next_statuses[index][k][1] = v * sin(next_statuses[index][k-1][2]) * SAMP_TIME + next_statuses[index][k-1][1];
-                            next_statuses[index][k][2] = om * SAMP_TIME + next_statuses[index][k-1][2];
+                            next_statuses[index][k] = {
+                                                        v * cos(next_statuses[index][k-1][2]) * SAMP_TIME + next_statuses[index][k-1][0],
+                                                        v * sin(next_statuses[index][k-1][2]) * SAMP_TIME + next_statuses[index][k-1][1],
+                                                        om * SAMP_TIME + next_statuses[index][k-1][2],
+                                                        v,
+                                                        om
+                                                    };
                         }
-                        next_statuses[index][k][3] = v;
-                        next_statuses[index][k][4] = om;
                     }
                     index++;
                 }
@@ -186,19 +195,13 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     objects.clear();
     lrf_sub_flg = true;
 
-    //! 応急処理
-    float nearest_dist = 8.0;
+    //! 一時的な応急処置
+    float nearest_dist = *min_element(msg->ranges.begin(), msg->ranges.end());
 
     for(auto range : msg->ranges){
         angle = rad_min + rad_inc * index + ANGLE_DIFF;
         current_point = {range * cos(angle), range * sin(angle)};
         if(!isnan(range) && range != 0){
-
-            //! 応急処理
-            if(range < nearest_dist){
-                nearest_dist = range;
-            }
-
             if(index == 0){
                 linear_points.push_back(current_point);
             }else{
@@ -225,8 +228,6 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
         before_point = current_point;
         index++;
     }
-    //! 応急処理
-    cout << nearest_dist << endl;
 }
 
 /**
