@@ -163,18 +163,18 @@ class DWA{
 };
 
 /**
- * @brief DWAシミュレーション用クラス
+ * @brief 点群の分類
  */
-class Goal{
+class classification_objexts{
 private:
-    vector<float> position;
+    vector<float> goal;
 public:
     Goal(){
         position.resize(2, 0.0);
     };
     vector<float> publish_position(){
         return position;
-    }
+    };
 };
 
 /**
@@ -259,6 +259,7 @@ int main(int argc, char **argv){
             current_status = cartbot.update_status(u_v, u_om);
             next_statuses  = simulator.predict_status(current_status);
 
+            cout << *min_element(objects.begin(), objects.end());
         }
         ros::spinOnce();
         rate.sleep();
