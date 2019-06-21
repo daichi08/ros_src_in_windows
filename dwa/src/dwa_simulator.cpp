@@ -170,10 +170,10 @@ private:
     vector<float> goal;
 public:
     classification_objects(){
-        position.resize(2, 0.0);
+        goal.resize(2, 0.0);
     };
     vector<float> publish_position(){
-        return position;
+        return goal;
     };
 };
 
@@ -258,9 +258,6 @@ int main(int argc, char **argv){
         if(lrf_sub_flg){
             current_status = cartbot.update_status(u_v, u_om);
             next_statuses  = simulator.predict_status(current_status);
-
-            float min_elm = *min_element(objects.begin(), objects.end());
-            cout << min_elm << endl;
         }
         ros::spinOnce();
         rate.sleep();
