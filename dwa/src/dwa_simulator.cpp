@@ -163,6 +163,21 @@ class DWA{
 };
 
 /**
+ * @brief DWAシミュレーション用クラス
+ */
+class Goal{
+private:
+    vector<float> position;
+public:
+    Goal(){
+        position.resize(2, 0.0);
+    };
+    vector<float> publish_position(){
+        return position;
+    }
+};
+
+/**
  * @brief LRFから得た点群を分割するコールバック関数
  */
 void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
@@ -221,6 +236,9 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     }
 }
 
+/**
+ * @brief MAIN関数
+ */
 int main(int argc, char **argv){
     ros::init(argc, argv, "dwa_sim");
     ros::NodeHandle n;
@@ -237,9 +255,9 @@ int main(int argc, char **argv){
     float u_om = 0;
 
     while(ros::ok()){
-        current_status = cartbot.update_status(u_v, u_om);
         if(lrf_sub_flg){
-            next_statuses = simulator.predict_status(current_status);
+            current_status = cartbot.update_status(u_v, u_om);
+            next_statuses  = simulator.predict_status(current_status);
 
         }
         ros::spinOnce();
