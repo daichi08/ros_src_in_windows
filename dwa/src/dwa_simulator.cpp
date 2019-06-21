@@ -187,7 +187,7 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     lrf_sub_flg = true;
 
     //! カートの最も近い点記憶用(SVM等使う用になった場合は消す)
-    float nearest_dist = *min_element(msg->ranges.begin(), msg->ranges.end());
+    float nearest_dist = *max_element(msg->ranges.begin(), msg->ranges.end());
     cout << nearest_dist << endl;
 
     for(auto range : msg->ranges){
