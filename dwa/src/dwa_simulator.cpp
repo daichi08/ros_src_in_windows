@@ -203,32 +203,29 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
 
     for(auto range : msg->ranges){
         angle = rad_min + rad_inc * index + ANGLE_DIFF;
-        if(index == 0){
-            current_point[0] = range * cos(angle);
-            current_point[1] = range * sin(angle);
-            if(!isnan(range) && range != 0){
+        current_point = {range * cos(angle), range * sin(angle)};
+        if(!isnan(range) && range != 0){
+            if(index == 0){
                 linear_points.push_back(current_point);
-            }
-        }else if(!isnan(range) && range != 0){
-            current_point[0] = range * cos(angle);
-            current_point[1] = range * sin(angle);
-            point_norm = sqrt(
-                            pow(current_point[0]-before_point[0], 2) +
-                            pow(current_point[1]-before_point[1], 2)
-                         );
-            similarity = 1/(1+point_norm);
+            }else{
+                point_norm = sqrt(
+                                pow(current_point[0]-before_point[0], 2) +
+                                pow(current_point[1]-before_point[1], 2)
+                             );
+                similarity = 1/(1+point_norm);
 
-            if(index == datasize-1){
-                if(similarity > SIM_LIMIT){
+                if(index == datasize-1){
+                    if(similarity > SIM_LIMIT){
+                        linear_points.push_back(current_point);
+                    }
+                    objects.push_back(linear_points);
+                    linear_points.clear();
+                }else if(similarity > SIM_LIMIT){
                     linear_points.push_back(current_point);
+                }else if(!linear_points.empty()){
+                    objects.push_back(linear_points);
+                    linear_points.clear();
                 }
-                objects.push_back(linear_points);
-                linear_points.clear();
-            }else if(similarity > SIM_LIMIT){
-                linear_points.push_back(current_point);
-            }else if(!linear_points.empty()){
-                objects.push_back(linear_points);
-                linear_points.clear();
             }
         }
         before_point = current_point;
