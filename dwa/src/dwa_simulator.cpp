@@ -237,6 +237,7 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     }
 
     //! 一時的な応急処置
+    labels.clear();
     for(auto object:objects){
         auto itr = find(object.begin(), object.end(), nearest_point);
         if(itr == object.end()){
