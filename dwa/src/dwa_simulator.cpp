@@ -10,6 +10,7 @@
 #include "std_msgs/Float32MultiArray.h"
 #include "vector"
 #include "cmath"
+#include "boost/range/adaptor/indexed.hpp"
 
 /**
  * @namespace std
@@ -85,7 +86,7 @@ class SimRobot{
         vector<float> set_limits(vector<float> current_status){
             vector<float> limits(4);
             limits = {
-                        min(current_status[3]+V_ACC_MAX,  V_MAX), 
+                        min(current_status[3]+V_ACC_MAX,  V_MAX),
                         max(current_status[3]-V_ACC_MAX,  V_MIN),
                         min(current_status[4]+OM_ACC_MAX, OM_MAX),
                         max(current_status[4]-OM_ACC_MAX, OM_MIN)
@@ -180,13 +181,14 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     //! LRF座標系とロボット座標系の位相
     const float ANGLE_DIFF = M_PI/2;
 
-    int   index      = 0;
     int   datasize   = msg->ranges.size();
+    int   index      = 0;
     float rad_inc    = msg->angle_increment;
     float rad_min    = msg->angle_min;
     float point_norm = 0.0;
     float similarity = 0.0;
     float angle      = 0.0;
+    float range      = 0.0;
 
     vector<float>           before_point(2);
     vector<float>           current_point(2);
@@ -195,18 +197,12 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
     objects.clear();
     lrf_sub_flg = true;
 
-    //! 一時的な応急処置
-    float nearest_dist = *min_element(msg->ranges.begin(), msg->ranges.end());
-    vector<float> nearest_point(2, 0.0);
+    for(const auto range_arr : msg->ranges | boost::adaptors::indexed()){
+        range = range_arr.value();
+        index = range_arr.index();
 
-    for(auto range : msg->ranges){
         angle = rad_min + rad_inc * index + ANGLE_DIFF;
         current_point = {range * cos(angle), range * sin(angle)};
-
-        //! 一時的な応急処置
-        if(range == nearest_dist){
-            nearest_point = current_point;
-        }
 
         if(!isnan(range) && range != 0){
             if(index == 0){
@@ -233,24 +229,19 @@ void division_point(const sensor_msgs::LaserScan::ConstPtr& msg){
             }
         }
         before_point = current_point;
-        index++;
     }
 
-    //! 一時的な応急処置
-    labels.clear();
-    for(auto object:objects){
-        auto itr = find(object.begin(), object.end(), nearest_point);
-        if(itr == object.end()){
-            labels.push_back(0);
-        }else{
-            labels.push_back(1);
+    //! デバッグ用
+    /*
+    for(auto linear_points : objects){
+        cout << "[";
+        for(auto points : linear_points){
+            cout << "[" << points[0] << "," << points[1] << "]";
         }
+        cout << "]" << endl;
     }
-    for(int label:labels){
-        cout << label << ",";
-    }
-    cout << endl;
-
+    cout << "*" << endl;
+    */
 }
 
 /**

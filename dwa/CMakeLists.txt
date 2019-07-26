@@ -149,23 +149,8 @@ target_link_libraries(gridmap
   ${catkin_LIBRARIES}
 )
 
-add_executable(cartrobot src/cartrobot.cpp)
-target_link_libraries(cartrobot
-    ${catkin_LIBRARIES}
-)
-
 add_executable(dwa_simulator src/dwa_simulator.cpp)
 target_link_libraries(dwa_simulator
-    ${catkin_LIBRARIES}
-)
-
-add_executable(division_points src/division_points.cpp)
-target_link_libraries(division_points
-    ${catkin_LIBRARIES}
-)
-
-add_executable(goalmaker src/goalmaker.cpp)
-target_link_libraries(goalmaker
     ${catkin_LIBRARIES}
 )
 
