@@ -28,7 +28,6 @@ using namespace std;
 bool lrf_sub_flg = false;
 //! 分割された点群を収めるベクトル
 vector< vector< vector<float> > > objects;
-vector<int> labels;
 
 /**
  * @brief 実際のロボットクラス
